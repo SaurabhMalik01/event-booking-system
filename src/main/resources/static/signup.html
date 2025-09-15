@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EventBooking — Sign Up</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body { font-family:'Inter',sans-serif; background: #0f0f1f; }
+        .glass { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(12px); }
+        .floating { position: relative; }
+        .floating input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: #111; color: #fff; outline:none; transition: 0.3s; }
+        .floating input:focus { border-color:#6366f1; box-shadow: 0 0 10px rgba(99,102,241,0.5); }
+        .floating label { position: absolute; top: 12px; left: 12px; color: #94a3b8; pointer-events: none; transition: 0.3s; }
+        .floating input:focus + label,
+        .floating input:not(:placeholder-shown) + label { top: -8px; left: 8px; font-size: 0.75rem; color:#6366f1; font-weight:600; }
+        .btn-accent { background: linear-gradient(90deg,#6366f1,#ec4899); color:black; font-weight:600; padding:12px; width:100%; border-radius:10px; transition: transform 0.3s, box-shadow 0.3s; }
+        .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(99,102,241,0.4),0 4px 6px rgba(236,72,153,0.3); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-6">
+<div class="glass p-10 rounded-3xl max-w-md w-full animate__animated animate__zoomIn">
+    <h2 class="text-3xl font-bold mb-1 text-white">Create account</h2>
+    <p class="text-gray-400 mb-6">Join EventBooking to book tickets and manage your events</p>
+    <form id="signupForm" class="space-y-4">
+        <div class="floating">
+            <input id="signupName" type="text" placeholder=" " required />
+            <label>Full name</label>
+        </div>
+        <div class="floating">
+            <input id="signupEmail" type="email" placeholder=" " required />
+            <label>Email</label>
+        </div>
+        <div class="floating">
+            <input id="signupPassword" type="password" placeholder=" " required />
+            <label>Password</label>
+        </div>
+        <button type="submit" class="btn-accent mt-2">Create account</button>
+    </form>
+    <script src="app.js"></script>
+
+    <p class="text-sm text-gray-400 mt-4">
+        Already have an account? <a href="login.html" class="text-indigo-400">Login</a>
+    </p>
+
+</div>
+</body>
+</html>

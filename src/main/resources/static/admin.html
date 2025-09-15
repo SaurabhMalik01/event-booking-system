@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EventBooking — Admin</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+
+    <style>
+        :root{
+          --accent1: #6366f1;
+          --accent2: #ec4899;
+          --muted: #94a3b8;
+        }
+        body{ font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, "Helvetica Neue", Arial; }
+        .glass { background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); backdrop-filter: blur(8px); }
+        .neon { box-shadow: 0 6px 30px rgba(99,102,241,0.12), inset 0 0 12px rgba(236,72,153,0.03); border: 1px solid rgba(255,255,255,0.03); }
+        .btn-accent { background: linear-gradient(90deg, var(--accent1), var(--accent2)); }
+        .muted { color: var(--muted); }
+    </style>
+</head>
+
+<body class="min-h-screen bg-gray-900 text-white">
+<div class="max-w-6xl mx-auto px-6 pt-28 pb-20">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+        <a href="/admin/add-event" class="px-4 py-2 btn-accent rounded-lg text-black font-semibold">Add Event</a>
+    </div>
+
+    <div class="glass p-4 rounded-2xl">
+        <table class="min-w-full text-left">
+            <thead class="text-sm text-gray-300">
+            <tr>
+                <th class="py-3">Event</th>
+                <th class="py-3">Date</th>
+                <th class="py-3">Venue</th>
+                <th class="py-3">Actions</th>
+            </tr>
+            </thead>
+            <tbody id="adminEventsContainer" class="divide-y divide-white/6">
+            <!-- Events will be dynamically injected here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        if(document.getElementById("adminEventsContainer")) {
+            getAllEvents().then(events => {
+                const container = document.getElementById("adminEventsContainer");
+                container.innerHTML = "";
+                events.forEach(event => {
+                    container.innerHTML += `
+                        <tr>
+                            <td class="py-3">${event.name}</td>
+                            <td class="py-3">${new Date(event.localDate).toDateString()}</td>
+                            <td class="py-3">${event.location}</td>
+                            <td class="py-3">
+                                <button onclick="updateEvent(${event.id})" class="px-3 py-1 rounded-md glass">Edit</button>
+                                <button onclick="deleteEvent(${event.id})" class="px-3 py-1 rounded-md glass">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+    });
+</script>
+</body>
+</html>

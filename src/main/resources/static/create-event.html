@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Create Event — EventBooking</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- AOS -->
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+
+    <!-- three.js + Vanta -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+
+    <style>
+        :root {
+          --accent1:#6366f1;
+          --accent2:#ec4899;
+          --muted:#94a3b8;
+        }
+        body{ font-family: 'Inter', sans-serif; }
+        .glass {
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          backdrop-filter: blur(10px);
+        }
+        .btn-accent {
+          background: linear-gradient(90deg, var(--accent1), var(--accent2));
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 text-white relative">
+
+<!-- VANTA background -->
+<div id="vanta-bg" class="absolute inset-0 -z-10"></div>
+
+<!-- NAV -->
+<header class="fixed top-5 left-0 right-0 z-40 px-6">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+        <a href="index.html" class="text-2xl font-extrabold bg-clip-text text-transparent" style="background-image:linear-gradient(90deg,var(--accent1),var(--accent2));">🎟 EventBooking</a>
+        <nav class="flex items-center gap-3">
+            <a href="index.html" class="px-4 py-2 rounded-lg glass hover:scale-105 transition">Home</a>
+        </nav>
+    </div>
+</header>
+
+<!-- MAIN -->
+<main class="pt-28 px-6">
+    <section class="max-w-3xl mx-auto glass p-10 rounded-2xl shadow-xl" data-aos="fade-up">
+        <h2 class="text-3xl font-bold mb-6">Create New Event</h2>
+
+        <form id="createEventForm" class="space-y-5">
+            <!-- Event Name -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Event Name</label>
+                <input type="text" id="eventNameInput" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-indigo-500" placeholder="Rock Concert" required>
+            </div>
+
+            <!-- Event Date -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Event Date</label>
+                <input type="date" id="eventDateInput" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-indigo-500" required>
+            </div>
+
+            <!-- Location -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Location</label>
+                <input type="text" id="eventLocationInput" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-indigo-500" placeholder="Mumbai" required>
+            </div>
+
+            <!-- Total Seats -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Total Seats</label>
+                <input type="number" id="eventSeatsInput" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-indigo-500" min="1" required>
+            </div>
+
+            <!-- Ticket Price -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Ticket Price (₹)</label>
+                <input type="number" id="eventPriceInput" class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:ring-2 focus:ring-indigo-500" min="0" required>
+            </div>
+
+            <!-- Upload Image -->
+            <div>
+                <label class="block mb-2 text-sm font-semibold">Event Image</label>
+                <input type="file" id="eventImageInput" accept="image/*" class="w-full p-2 bg-gray-800 border border-gray-700 rounded-lg">
+                <div id="imagePreview" class="mt-3"></div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="w-full py-3 rounded-lg btn-accent text-black font-semibold shadow-lg transform hover:scale-105 transition">Create Event</button>
+        </form>
+    </section>
+</main>
+
+<!-- FOOTER -->
+<footer class="border-t border-white/10 py-8 mt-6">
+    <div class="max-w-6xl mx-auto px-6 text-center text-gray-400">© 2025 EventBooking — built with ❤️</div>
+</footer>
+
+<!-- Scripts -->
+<script src="app.js"></script>
+<script>
+    // VANTA background
+    VANTA.NET({
+      el: "#vanta-bg",
+      mouseControls: true,
+      touchControls: true,
+      color: 0x6366f1,
+      backgroundColor: 0x071225,
+      points: 12.0,
+      maxDistance: 20.0,
+      spacing: 20.0
+    });
+
+    // AOS init
+    AOS.init({ duration: 700, once: true });
+
+    const form = document.getElementById("createEventForm");
+    const fileInput = document.getElementById("eventImageInput");
+    const preview = document.getElementById("imagePreview");
+
+    // Preview + remove image
+    fileInput.addEventListener("change", () => {
+      preview.innerHTML = "";
+      const file = fileInput.files[0];
+      if (file) {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.className = "w-full h-48 object-cover rounded-lg shadow mt-2";
+        preview.appendChild(img);
+
+        const btn = document.createElement("button");
+        btn.textContent = "Remove";
+        btn.type = "button";
+        btn.className = "mt-2 px-3 py-1 bg-red-500 rounded hover:bg-red-600 transition";
+        btn.onclick = () => { fileInput.value = ""; preview.innerHTML = ""; };
+        preview.appendChild(btn);
+      }
+    });
+
+    // Handle form submission
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); // stop default page reload
+
+      const formData = new FormData();
+      formData.append("name", document.getElementById("eventNameInput").value);
+      formData.append("date", document.getElementById("eventDateInput").value);
+      formData.append("location", document.getElementById("eventLocationInput").value);
+      formData.append("totalSeats", document.getElementById("eventSeatsInput").value);
+      formData.append("price", document.getElementById("eventPriceInput").value);
+      if (fileInput.files[0]) formData.append("image", fileInput.files[0]);
+
+      try {
+        const res = await fetch("http://localhost:8080/events/create", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) throw new Error("Failed to create event");
+
+        const data = await res.json();
+        alert("Event created successfully!");
+        window.location.href = "index.html"; // go back to home
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+</script>
+
+
+</body>
+</html>

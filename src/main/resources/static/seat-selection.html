@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EventBooking — Select Seats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+
+    <style>
+        :root{--accent1:#6366f1;--accent2:#ec4899;--muted:#94a3b8}
+        body{font-family:'Inter',sans-serif}
+        .glass{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);backdrop-filter:blur(8px)}
+        .seat{ width:46px; height:46px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; cursor:pointer; user-select:none; transition: all 0.2s ease; }
+        .seat-available{ background: linear-gradient(180deg,#6ee7b7,#34d399); color:#021220; box-shadow:0 8px 20px rgba(16,185,129,0.08); }
+        .seat-booked{ background: linear-gradient(180deg,#fb7185,#ef4444); color:white; cursor:not-allowed; opacity:0.95; }
+        .seat-selected{ background: linear-gradient(90deg,#f59e0b,#ef4444); color:#021220; transform:scale(1.08); box-shadow:0 15px 40px rgba(239,68,153,0.14); }
+        .screen { background: linear-gradient(90deg,#111827,#0f172a); color:#cbd5e1; padding:10px; border-radius:8px; }
+        .muted{ color:var(--muted) }
+        .loading { display: none; }
+        .loading.show { display: block; }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900 text-white relative">
+<div id="vanta-seat" class="absolute inset-0 -z-10"></div>
+
+<header class="fixed top-5 left-0 right-0 z-40 px-6">
+    <div class="max-w-6xl mx-auto flex items-center justify-between">
+        <a href="/" class="text-2xl font-extrabold" style="background-image:linear-gradient(90deg,var(--accent1),var(--accent2)); -webkit-background-clip:text; color:transparent">🎟 EventBooking</a>
+        <a id="backBtn" href="/" class="glass px-3 py-2 rounded">Back</a>
+    </div>
+</header>
+
+<main class="pt-28 max-w-5xl mx-auto px-6 pb-20">
+    <!-- Loading State -->
+    <div id="loading" class="loading text-center">
+        <div class="glass p-6 rounded-2xl">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+            <p class="text-lg">Loading event details...</p>
+        </div>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="loading text-center">
+        <div class="glass p-6 rounded-2xl">
+            <div class="text-red-400 text-6xl mb-4">⚠️</div>
+            <h2 class="text-2xl font-bold mb-2">Error Loading Event</h2>
+            <p id="error-message" class="text-red-400 mb-4">Something went wrong</p>
+            <button onclick="window.location.href='index.html'" class="px-6 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors">
+                Go Back Home
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="glass p-6 rounded-2xl" data-aos="fade-up" style="display: none;">
+        <h2 id="event-title" class="text-2xl font-bold mb-1">Select Your Seats</h2>
+        <p class="muted mb-4">Click to select. Red seats are booked. Price per seat: <span id="seat-price" class="font-semibold">₹0</span></p>
+
+        <!-- LEGEND -->
+        <div class="flex gap-4 mb-6">
+            <div class="flex items-center gap-2"><div class="w-6 h-6 seat seat-available rounded"></div><span class="muted text-sm">Available</span></div>
+            <div class="flex items-center gap-2"><div class="w-6 h-6 seat seat-booked rounded"></div><span class="muted text-sm">Booked</span></div>
+            <div class="flex items-center gap-2"><div class="w-6 h-6 seat seat-selected rounded"></div><span class="muted text-sm">Selected</span></div>
+        </div>
+
+        <!-- SCREEN -->
+        <div class="w-full text-center mb-6">
+            <div class="screen mx-auto w-3/4 rounded-lg">SCREEN</div>
+        </div>
+
+        <!-- SEAT GRID -->
+        <div id="seat-grid" class="flex flex-col gap-3 items-center"></div>
+
+        <!-- SUMMARY -->
+        <div class="mt-8 flex items-center justify-between">
+            <div>
+                <div class="text-sm muted">Selected Seats</div>
+                <div id="selected-seats" class="text-lg font-semibold">None</div>
+            </div>
+            <div class="text-right">
+                <div class="text-sm muted">Total</div>
+                <div id="total-amount" class="text-2xl font-bold">₹0</div>
+                <div class="mt-3">
+                    <button
+                            id="proceedBtn"
+                            class="px-6 py-3 mt-2 rounded-xl font-semibold shadow-lg text-white
+                               bg-gradient-to-r from-indigo-500 to-pink-500
+                               hover:from-indigo-600 hover:to-pink-600
+                               disabled:opacity-50 disabled:cursor-not-allowed
+                               transition-all duration-300"
+                            disabled>
+                        Proceed to Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Initialize Vanta background
+    VANTA.NET({
+        el: "#vanta-seat",
+        color: 0x3b82f6,
+        backgroundColor: 0x071225,
+        points: 10.0,
+        maxDistance: 18.0,
+        spacing: 18.0
+    });
+
+    document.addEventListener('DOMContentLoaded', () => AOS.init({ duration: 700, once: true }));
+
+    // Get references to DOM elements
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    const mainContentEl = document.getElementById('main-content');
+    const errorMessageEl = document.getElementById('error-message');
+    const grid = document.getElementById('seat-grid');
+    const pricePerSeatEl = document.getElementById('seat-price');
+    const eventTitleEl = document.getElementById('event-title');
+
+    // State variables
+    let pricePerSeat = 0;
+    let eventName = '';
+    let seatsData = {};
+    let selected = new Set();
+
+    function showLoading() {
+        loadingEl.classList.add('show');
+        errorEl.classList.remove('show');
+        mainContentEl.style.display = 'none';
+    }
+
+    function showError(message) {
+        loadingEl.classList.remove('show');
+        errorEl.classList.add('show');
+        mainContentEl.style.display = 'none';
+        errorMessageEl.textContent = message;
+    }
+
+    function showMainContent() {
+        loadingEl.classList.remove('show');
+        errorEl.classList.remove('show');
+        mainContentEl.style.display = 'block';
+    }
+
+    function checkLoginStatus() {
+        const userEmail = sessionStorage.getItem('userEmail');
+        console.log('Checking login status:', userEmail ? 'Logged in' : 'Not logged in');
+
+        if (!userEmail) {
+            console.log('User not logged in, redirecting to login');
+            // Store current URL for redirect after login
+            sessionStorage.setItem('redirectAfterLogin', window.location.href);
+            window.location.href = '/login.html';
+            return false;
+        }
+        return true;
+    }
+
+    function getEventId() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get("id");
+        console.log('Event ID from URL:', eventId);
+
+        if (!eventId) {
+            showError("Event ID is missing from the URL. Please select an event from the main page.");
+            return null;
+        }
+        return eventId;
+    }
+
+    async function loadEventAndSeats() {
+        showLoading();
+
+        // Check if user is logged in
+        if (!checkLoginStatus()) {
+            return; // Will redirect to login
+        }
+
+        // Get event ID from URL
+        const eventId = getEventId();
+        if (!eventId) {
+            return; // Error already shown
+        }
+
+        try {
+            console.log('Loading event data for ID:', eventId);
+
+            // Fetch event details
+            const eventRes = await fetch(`/events/${eventId}`);
+            if (!eventRes.ok) {
+                throw new Error(`Event not found (${eventRes.status})`);
+            }
+            const eventData = await eventRes.json();
+
+            eventName = eventData.name || 'Unknown Event';
+            pricePerSeat = eventData.price || 0;
+
+            console.log('Event loaded:', { name: eventName, price: pricePerSeat });
+
+            // Update UI with event details
+            eventTitleEl.textContent = `Select Your Seats - ${eventName}`;
+            pricePerSeatEl.textContent = `₹${pricePerSeat}`;
+
+            // Fetch seat map
+            console.log('Loading seat data...');
+            const seatRes = await fetch(`/events/${eventId}/seats`);
+            if (!seatRes.ok) {
+                throw new Error(`Seat data not found (${seatRes.status})`);
+            }
+            const seatData = await seatRes.json();
+
+            console.log('Seat data loaded:', seatData);
+
+            // Render the seat grid
+            renderSeatGrid(seatData.rows, seatData.cols, seatData.seats);
+
+            // Show main content
+            showMainContent();
+
+        } catch (err) {
+            console.error('Error loading event/seats:', err);
+            showError(`Failed to load event data: ${err.message}`);
+        }
+    }
+
+    function renderSeatGrid(rows, cols, seats) {
+        seatsData = seats;
+        grid.innerHTML = '';
+
+        for (let r = 1; r <= rows; r++) {
+            const rowEl = document.createElement('div');
+            rowEl.className = 'flex gap-2';
+
+            for (let c = 1; c <= cols; c++) {
+                const seatId = `R${r}C${c}`;
+                const seatEl = document.createElement('div');
+                seatEl.className = 'seat text-sm';
+                seatEl.dataset.id = seatId;
+                seatEl.title = seatId;
+                seatEl.textContent = c;
+
+                if (seats[seatId]) {
+                    // Seat is booked
+                    seatEl.classList.add('seat-booked');
+                } else {
+                    // Seat is available
+                    seatEl.classList.add('seat-available');
+                    seatEl.tabIndex = 0;
+                    seatEl.addEventListener('click', () => toggleSelect(seatEl));
+                    seatEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleSelect(seatEl);
+                        }
+                    });
+
+                    // Add hover animations for available seats
+                    seatEl.addEventListener('mouseenter', () => {
+                        if (!seatEl.classList.contains('seat-selected')) {
+                            seatEl.style.transform = 'translateY(-2px)';
+                        }
+                    });
+                    seatEl.addEventListener('mouseleave', () => {
+                        if (!seatEl.classList.contains('seat-selected')) {
+                            seatEl.style.transform = 'translateY(0px)';
+                        }
+                    });
+                }
+
+                rowEl.appendChild(seatEl);
+            }
+            grid.appendChild(rowEl);
+        }
+
+        updateSummary();
+    }
+
+    function toggleSelect(seatEl) {
+        const seatId = seatEl.dataset.id;
+
+        if (seatEl.classList.contains('seat-booked')) {
+            return; // Can't select booked seats
+        }
+
+        if (seatEl.classList.contains('seat-selected')) {
+            // Deselect seat
+            seatEl.classList.remove('seat-selected');
+            seatEl.classList.add('seat-available');
+            selected.delete(seatId);
+        } else {
+            // Select seat
+            seatEl.classList.remove('seat-available');
+            seatEl.classList.add('seat-selected');
+            selected.add(seatId);
+
+            // Add selection animation
+            seatEl.style.animation = 'none';
+            seatEl.offsetHeight; // Trigger reflow
+            seatEl.style.animation = 'selectSeat 0.3s cubic-bezier(0.2, 0.9, 0.2, 1)';
+        }
+
+        updateSummary();
+    }
+
+    function updateSummary() {
+        const selectedArray = Array.from(selected);
+        const selectedSeatsEl = document.getElementById('selected-seats');
+        const totalAmountEl = document.getElementById('total-amount');
+        const proceedBtn = document.getElementById('proceedBtn');
+
+        // Update selected seats display
+        selectedSeatsEl.textContent = selectedArray.length ? selectedArray.join(', ') : 'None';
+
+        // Update total amount
+        const totalAmount = selectedArray.length * pricePerSeat;
+        totalAmountEl.textContent = `₹${totalAmount}`;
+
+        // Enable/disable proceed button
+        proceedBtn.disabled = selectedArray.length === 0;
+
+        // Set up proceed button click handler
+        proceedBtn.onclick = () => {
+            if (selectedArray.length > 0) {
+                // Store booking data in session storage
+                const eventId = getEventId();
+                const userEmail = sessionStorage.getItem('userEmail');
+
+                sessionStorage.setItem('selectedSeats', JSON.stringify(selectedArray));
+                sessionStorage.setItem('totalAmount', totalAmount.toString());
+                sessionStorage.setItem('eventId', eventId);
+                sessionStorage.setItem('eventName', eventName);
+                sessionStorage.setItem('userEmail', userEmail);
+
+                console.log('Proceeding to payment with data:', {
+                    selectedSeats: selectedArray,
+                    totalAmount,
+                    eventId,
+                    eventName,
+                    userEmail
+                });
+
+                // Navigate to payment page
+                window.location.href = '/payment.html';
+            }
+        };
+    }
+
+    // Add CSS animation for seat selection
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes selectSeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1.08); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Start the application
+    console.log('Starting seat selection application...');
+    loadEventAndSeats();
+</script>
+</body>
+</html>

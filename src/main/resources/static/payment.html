@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>EventBooking — Payment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.cells.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body{font-family:'Inter',sans-serif;background:#0f0f1f;color:white;overflow-x:hidden;}
+        #vanta-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-10;}
+        .modal-bg{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:50;}
+        .modal-bg.hidden{display:none;}
+        .glass{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);backdrop-filter:blur(12px);padding:2rem;border-radius:1rem;max-width:480px;width:100%;color:white;}
+        .btn-accent{background:linear-gradient(90deg,#6366f1,#ec4899);color:black;font-weight:600;padding:12px;border-radius:12px;transition:all 0.3s;width:100%;text-align:center;display:inline-block;}
+        .btn-accent:hover{transform:translateY(-3px);box-shadow:0 10px 25px rgba(99,102,241,0.5),0 4px 6px rgba(236,72,153,0.4);}
+        .panel-title{font-weight:600;color:#e0e0ff;margin-bottom:0.5rem;}
+        .panel-text{color:#94a3b8;font-size:0.85rem;}
+        .check-circle{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#10b981,#34d399);box-shadow:0 10px 30px rgba(16,185,129,0.3);margin:auto;}
+        .floating{position:relative;margin-bottom:1rem;}
+        .floating input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:#111;color:#fff;outline:none;transition:0.3s;}
+        .floating input:focus{border-color:#6366f1;box-shadow:0 0 12px rgba(99,102,241,0.5);}
+        .floating label{position:absolute;top:12px;left:12px;color:#94a3b8;pointer-events:none;transition:0.3s;}
+        .floating input:focus + label, .floating input:not(:placeholder-shown) + label{top:-8px;left:8px;font-size:0.75rem;color:#6366f1;font-weight:600;}
+    </style>
+</head>
+<body>
+<div id="vanta-bg"></div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal-bg animate__animated animate__fadeIn">
+    <div class="glass animate__animated animate__zoomIn">
+        <h3 class="text-2xl panel-title mb-4">Booking Summary</h3>
+        <div class="border border-white/20 p-4 rounded-lg mb-6">
+            <div class="flex justify-between">
+                <div>
+                    <div id="eventName" class="font-semibold text-white">Event Name</div>
+                    <div id="eventDetails" class="panel-text">Date • Venue</div>
+                    <div class="panel-text mt-2">Seats: <span id="selectedSeats">-</span></div>
+                </div>
+                <div class="text-right">
+                    <div id="payAmount" class="text-lg font-bold">₹0</div>
+                    <div class="panel-text" id="paySeats">0 seats</div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="panel-title mb-2">Choose Payment Method</h4>
+        <div class="flex gap-3 mb-4">
+            <button id="btnUpi" class="btn-accent">UPI</button>
+            <button id="btnCard" class="btn-accent bg-gray-800">Card</button>
+        </div>
+
+        <form id="cardForm" class="space-y-3 hidden animate__animated animate__flipInY">
+            <div class="floating">
+                <input id="name" placeholder=" " />
+                <label>Name on card</label>
+            </div>
+            <div class="floating">
+                <input id="card" placeholder=" " />
+                <label>Card Number</label>
+            </div>
+            <div class="flex gap-3">
+                <div class="floating w-1/2">
+                    <input id="expiry" placeholder=" " />
+                    <label>MM/YY</label>
+                </div>
+                <div class="floating w-1/2">
+                    <input id="cvv" placeholder=" " />
+                    <label>CVC</label>
+                </div>
+            </div>
+            <button type="button" id="payBtn" class="btn-accent">Pay Now</button>
+        </form>
+
+        <div id="upiPanel" class="glass p-4 rounded-lg hidden animate__animated animate__fadeIn">
+            <div class="flex justify-between mb-3">
+                <div>
+                    <div class="panel-title">Pay via UPI</div>
+                    <div class="panel-text">Scan QR or copy UPI ID</div>
+                </div>
+                <div class="text-right font-bold" id="upiAmount">₹0</div>
+            </div>
+            <div class="flex gap-4 items-center">
+                <div id="qrBox" class="p-4 bg-white/10 rounded-lg">
+                    <img id="qrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi%3Ademo@upi" alt="QR">
+                </div>
+                <div>
+                    <div class="panel-text mb-2">UPI ID</div>
+                    <div class="flex items-center gap-2">
+                        <div class="font-mono font-semibold">demo@upi</div>
+                        <button id="copyUpi" class="px-3 py-1 rounded bg-gray-800">Copy</button>
+                    </div>
+                    <div class="panel-text text-sm mt-3">After payment, click "I have paid"</div>
+                    <button id="confirmUpi" class="btn-accent mt-4">I have paid</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Overlay -->
+<div id="successOverlay" class="modal-bg hidden animate__animated animate__fadeIn">
+    <div class="glass flex flex-col items-center justify-center animate__animated animate__zoomIn">
+        <div class="check-circle mb-3">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 6L9 17l-5-5" stroke="#021220" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="text-2xl font-bold mt-2">Payment Successful!</div>
+    </div>
+</div>
+
+<script>
+    function loadSummary(){
+        const userEmail = sessionStorage.getItem('userEmail');
+        const eventId = sessionStorage.getItem('eventId');
+
+        // Check if user is logged in
+        if(!userEmail){
+            alert("You must be logged in to book tickets!");
+            window.location.href = '/login.html';
+            return;
+        }
+
+        const seats = JSON.parse(sessionStorage.getItem('selectedSeats') || '[]');
+        const total = sessionStorage.getItem('totalAmount') || 0;
+
+        // Fetch event details
+        fetch(`/events/${eventId}`)
+        .then(res => res.json())
+        .then(eventData => {
+            document.getElementById('eventName').innerText = eventData.name || "Event";
+            const eventDate = new Date(eventData.date).toLocaleDateString();
+            const eventLocation = eventData.location || "Venue Name";
+            document.getElementById('eventDetails').innerText = `${eventDate} • ${eventLocation}`;
+            document.getElementById('selectedSeats').innerText = seats.join(', ') || 'None';
+            document.getElementById('paySeats').innerText = seats.length + " seats";
+            document.getElementById('payAmount').innerText = "₹" + total;
+            document.getElementById('upiAmount').innerText = "₹" + total;
+        })
+        .catch(err => console.error("Failed to fetch event details", err));
+    }
+
+    // Toggle UPI and Card
+    document.getElementById('btnUpi').addEventListener('click', () => {
+        document.getElementById('upiPanel').classList.remove('hidden');
+        document.getElementById('cardForm').classList.add('hidden');
+    });
+    document.getElementById('btnCard').addEventListener('click', () => {
+        document.getElementById('cardForm').classList.remove('hidden');
+        document.getElementById('upiPanel').classList.add('hidden');
+    });
+
+    // Card Payment
+    document.getElementById('payBtn').addEventListener('click', ()=> {
+        const name = document.getElementById('name').value;
+        const card = document.getElementById('card').value;
+        const cvv = document.getElementById('cvv').value;
+        if(!name || !card || !cvv){
+            alert("Please fill payment details!");
+            return;
+        }
+        setTimeout(simulateSuccess, 2000);
+    });
+
+    // UPI Payment
+    document.getElementById('confirmUpi').addEventListener('click', ()=> {
+        simulateSuccess();
+    });
+
+    async function simulateSuccess(){
+    const userEmail = sessionStorage.getItem('userEmail');
+    const seats = JSON.parse(sessionStorage.getItem('selectedSeats') || '[]');
+    const eventId = sessionStorage.getItem('eventId');
+
+    if(!userEmail || !eventId || seats.length === 0){
+        alert("Invalid booking attempt!");
+        window.location.href = '/events';
+        return;
+    }
+
+    // Show success overlay
+    document.getElementById('paymentModal').classList.add('hidden');
+    const success = document.getElementById('successOverlay');
+    success.classList.remove('hidden');
+
+    try {
+        console.log("Sending seats to backend:", seats); // Debug log
+
+        // Send ONLY the seats array - no object wrapper
+        const bookingResponse = await fetch(`/events/${eventId}/book-seats`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(seats) // This sends: ["A1", "A2"]
+        });
+
+        if (!bookingResponse.ok) {
+            const errorText = await bookingResponse.text();
+            console.error("Backend error:", errorText);
+            throw new Error(`Booking failed: ${bookingResponse.status}`);
+        }
+
+        const bookingResult = await bookingResponse.json();
+        console.log("Booking successful:", bookingResult);
+
+    } catch(err){
+        console.error("Booking failed", err);
+        alert("Payment successful but there was an issue with booking confirmation. Please contact support.");
+        return; // Stop execution here
+    }
+
+    // Continue with confirmation page logic...
+    const eventRes = await fetch(`/events/${eventId}`);
+    const eventData = await eventRes.json();
+    const eventName = eventData.name || "Event";
+    const eventLocation = eventData.location || "Venue Name";
+
+    let eventDateISO;
+    if (eventData.date) {
+        const eventDateObj = new Date(eventData.date);
+        eventDateISO = eventDateObj.toISOString();
+    } else {
+        eventDateISO = new Date().toISOString();
+    }
+
+    const bookingInfo = {
+        id: "BK" + Date.now(),
+        eventId,
+        eventName,
+        eventDate: eventDateISO,
+        eventLocation,
+        seats,
+        totalAmount: sessionStorage.getItem('totalAmount') || 0,
+        userEmail
+    };
+
+    localStorage.setItem('booking', JSON.stringify(bookingInfo));
+    sessionStorage.setItem('booking', JSON.stringify(bookingInfo));
+
+    // Clear sessionStorage
+    sessionStorage.removeItem('selectedSeats');
+    sessionStorage.removeItem('totalAmount');
+    sessionStorage.removeItem('eventId');
+    sessionStorage.removeItem('eventName');
+
+    setTimeout(() => window.location.href = 'confirmation.html', 2000);
+}
+
+    window.onload = loadSummary;
+</script>
+
+</body>
+</html>
